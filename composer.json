@@ -14,7 +14,8 @@
     "require": {
         "php": ">=5.6",
         "digitalstate/platform-transport-bundle" : "dev-master",
-        "sparkpost/php-sparkpost": "~1.0"
+        "sparkpost/php-sparkpost": "~1.0",
+        "php-http/guzzle6-adapter" : "~1.0"
     },
     "autoload": {
         "psr-0": { "SDD\\Bundle\\SparkPostTransportBundle": "" }
