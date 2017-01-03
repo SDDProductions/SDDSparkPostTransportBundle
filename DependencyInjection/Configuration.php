@@ -16,6 +16,7 @@ class Configuration implements ConfigurationInterface
     public function getConfigTreeBuilder()
     {
         $treeBuilder = new TreeBuilder;
+        $rootNode = $treeBuilder->root('sdd_sparkPost');
 
         return $treeBuilder;
     }

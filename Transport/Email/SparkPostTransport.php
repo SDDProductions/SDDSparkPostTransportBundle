@@ -10,13 +10,18 @@ use Ds\Bundle\TransportBundle\Entity\Profile;
 /**
  * Class MailTransport
  */
-class MailTransport extends AbstractTransport
+class SparkPostTransport extends AbstractTransport
 {
+
+
+
+
     /**
      * {@inheritdoc}
      */
     public function send(Message $message, Profile $profile = null)
     {
+
         $profile = $profile ?: $this->profile;
         $message->setFrom($profile->getData('from'));
         $success = mail($message->getTo(), $message->getTitle(), $message->getContent(), 'From: ' . $message->getFrom());
@@ -25,6 +30,6 @@ class MailTransport extends AbstractTransport
             //throw new UnexpectedValueException('Message could not be sent.');
         }
 
-        return $this;
+        return $message;
     }
 }

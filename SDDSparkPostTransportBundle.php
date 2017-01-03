@@ -18,6 +18,5 @@ class SDDSparkPostTransportBundle extends Bundle
     {
         parent::build($container);
 
-        $container->addCompilerPass(new TransportPass);
     }
 }

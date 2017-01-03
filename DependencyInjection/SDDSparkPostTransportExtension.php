@@ -10,7 +10,7 @@ use Symfony\Component\DependencyInjection\Loader;
 /**
  * Class DsTransportExtension
  */
-class DsTransportExtension extends Extension
+class SDDSparkPostTransportExtension extends Extension
 {
     /**
      * {@inheritdoc}

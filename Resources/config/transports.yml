@@ -1,5 +1,5 @@
 services:
     sdd.transport.transport.email.sparkpost:
-        class: SDD\Bundle\SparkPostTransportBundle\Transport\Email\MailTransport
+        class: SDD\Bundle\SparkPostTransportBundle\Transport\Email\SparkPostTransport
         tags:
             - { name: ds.transport, implementation: email.sparkpost }

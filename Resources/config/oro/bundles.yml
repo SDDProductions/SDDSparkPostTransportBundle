@@ -1,2 +1,2 @@
 bundles:
-    - { name: SDD\Bundle\SDDSparkPostTransportBundle\SDDSparkPostTransportBundle, priority: 20 }
+    - { name: SDD\Bundle\SparkPostTransportBundle\SDDSparkPostTransportBundle, priority: 30 }
