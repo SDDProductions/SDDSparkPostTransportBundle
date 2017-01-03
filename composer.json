@@ -1,0 +1,28 @@
+{
+    "name": "SDDProductions/SDDSparkPostTransportBundle",
+    "type": "symfony-bundle",
+    "description": "SDDProductions/SDDSparkPostTransportBundle Bundle",
+    "homepage": "https://github.com/SDDProductions/SDDSparkPostTransportBundle",
+    "keywords": ["DigitalState-Transport" ,"SparkPost"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "SDD Productions, Inc",
+            "homepage": "http://www.sddproductions.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6",
+        "digitalstate/platform-transport-bundle" : "dev-master",
+    },
+    "autoload": {
+        "psr-0": { "SDD\\Bundle\\SparkPostTransportBundle": "" }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.x-dev"
+        }
+    }
+}
