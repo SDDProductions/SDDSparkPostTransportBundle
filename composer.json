@@ -1,5 +1,5 @@
 {
-    "name": "SDDProductions/SDDSparkPostTransportBundle",
+    "name": "sddproductions/sdd-sparkpost-transport-bundle",
     "type": "symfony-bundle",
     "description": "SDDProductions/SDDSparkPostTransportBundle Bundle",
     "homepage": "https://github.com/SDDProductions/SDDSparkPostTransportBundle",
