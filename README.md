@@ -7,11 +7,9 @@ This bundle is an integration between [DigitalState/Platform-Transport-Bundle](h
 The ususal composer require !
 
 
-
 ### Transport and Profile configuration
 
 #### Transport
-
 You need to add a new Transport with the following data:
 ```json
 {
@@ -29,7 +27,6 @@ The `allowed_sender_domains` is the list of domains that are currently allowed a
 
 
 #### Profile
-
 You need to add a new profile with the following data: 
 
 The Field `send_from` is used to configured the emails will that is used to send emails through the _Transport_
