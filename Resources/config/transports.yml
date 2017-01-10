@@ -1,5 +1,8 @@
 services:
     sdd.transport.transport.email.sparkpost:
         class: SDD\Bundle\SparkPostTransportBundle\Transport\Email\SparkPostTransport
+        arguments:
+            - @doctrine.orm.entity_manager
+
         tags:
             - { name: ds.transport, implementation: email.sparkpost }
