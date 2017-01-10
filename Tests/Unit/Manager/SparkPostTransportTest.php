@@ -13,6 +13,24 @@ use Symfony\Component\HttpFoundation\Request;
 class SparkPostTransportTest extends PHPUnit_Framework_TestCase
 {
 
+    protected function getEmMock()
+    {
+        $emMock = $this->getMock('\Doctrine\ORM\EntityManager',
+                                 array ( 'getClassMetadata', 'persist', 'flush' ), array (), '', false);
+        $emMock->expects($this->any())
+            ->method('getClassMetadata')
+            ->will($this->returnValue((object)array ( 'name' => 'aClass' )));
+        $emMock->expects($this->any())
+            ->method('persist')
+            ->will($this->returnValue(null));
+        $emMock->expects($this->any())
+            ->method('flush')
+            ->will($this->returnValue(null));
+
+        return $emMock;  // it tooks 13 lines to achieve mock!
+    }
+
+
     private function getRequest($content)
     {
         return new Request(array (), array (), array (), array (), array (), array (), $content);
@@ -26,7 +44,7 @@ class SparkPostTransportTest extends PHPUnit_Framework_TestCase
     {
         $request = $this->getRequest($body);
 
-        $spp = new SparkPostTransport();
+        $spp = new SparkPostTransport($this->getEmMock());
 
         $events = $spp->validateInput($request);
 
@@ -59,14 +77,12 @@ class SparkPostTransportTest extends PHPUnit_Framework_TestCase
                 {"msys": {"message_event": {"type": "delivery"}}}
                 ]',
                 [
-                    json_encode([ "message_event" => [ "type" => "bounce" ] ]),
-                    json_encode([ "message_event" => [ "type" => "delivery" ] ]),
+                    [ "message_event" => [ "type" => "bounce" ] ],
+                    [ "message_event" => [ "type" => "delivery" ] ],
                 ],
             ],
         ];
     }
-
-
 
 
     public function webhookDataProvider()
