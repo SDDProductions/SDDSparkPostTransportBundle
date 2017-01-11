@@ -4,6 +4,9 @@ namespace SDD\Bundle\SparkPostTransportBundle\Transport\Email;
 
 use Doctrine\ORM\EntityManager;
 use Ds\Bundle\TransportBundle\Entity\WebHookData;
+use Ds\Bundle\TransportBundle\Model\AbstractMessageEvent;
+use Ds\Bundle\TransportBundle\Model\MessageEvent;
+use Ds\Bundle\TransportBundle\Model\UrlTrackingMessageEvent;
 use Ds\Bundle\TransportBundle\Transport\AbstractTransport;
 use Ds\Bundle\TransportBundle\Model\Message;
 use Ds\Bundle\TransportBundle\Entity\Profile;
@@ -166,7 +169,7 @@ class SparkPostTransport extends AbstractTransport implements WebHookHandler
      *
      * @return string[]
      */
-    public function validateInput(Request $request)
+    public function parseRequest(Request $request)
     {
         $data    = [];
         $content = $request->getContent();
@@ -207,85 +210,82 @@ class SparkPostTransport extends AbstractTransport implements WebHookHandler
     }
 
 
-    private function getMessageFromData(Profile $profile, $data)
+    private static function getMessageData(WebHookData $webHookData)
     {
+        $body = $webHookData->getData();
+
+        if (count($body) > 1)
+            throw new \InvalidArgumentException('The WebHookData must contain a single event');
+
+        if (empty($body))
+            return null;
+
+        reset($body);
+        $event_class = key($body);
+        $data        = $body[$event_class];
+
+        $type = $data['type'];
+
+
+        return [ $event_class, $type, $data ];
+    }
+
+    public function getMessageUID(WebHookData $webHookData)
+    {
+        list($event_class, $type, $data) = self::getMessageData($webHookData);
+
         if ( !array_key_exists('rcpt_meta', $data))
             return null;
         if ( !array_key_exists('message_uid', $data['rcpt_meta']))
             return null;
 
-        $message_uid = $data['rcpt_meta']['message_uid'];
-
-        /** @var \Ds\Bundle\CommunicationBundle\Entity\Message $message */
-        $message = $this->em
-            ->getRepository('DsCommunicationBundle:Message')
-            ->findOneBy([
-                            'message_uid' => $message_uid,
-                            'profile'     => $profile->getId(),
-                        ]);
-
-        return $message;
+        return $data['rcpt_meta']['message_uid'];
     }
 
-    private function setMessageStatus(WebHookData $webHookData,$data, $status)
+
+    private function getDate($data)
     {
-        $message = $this->getMessageFromData($webHookData->getProfile() ,$data);
+        if ( !array_key_exists('timestamp', $data))
+            return null;
 
-        if ($message === null)
-            return false;
+        $timestamp = intval($data['timestamp']);
 
-        // final message states
-        if ($message->getDeliveryStatus() === Message::STATUS_FAILED
-            || $message->getDeliveryStatus() === Message::STATUS_SENT
-            || $message->getDeliveryStatus() === Message::STATUS_CANCELLED
-        )
-            return true;
+        $d = new \DateTime();
 
-        if($status !== Message::STATUS_UNKNOWN)
+        if ($timestamp)
         {
-            // Message:: STATUS_QUEUED
-            // Message::STATUS_SENDING
-            $message->setDeliveryStatus($status);
+            $d->setTimestamp($timestamp);
         }
 
-        $this->em->persist($message);
-
-        return true;
+        return $d;
     }
 
 
     /**
      * @param WebHookData $webHookData
      *
-     * @return bool
+     * @return AbstractMessageEvent|null
      */
-    private function processSingle(WebHookData $webHookData, $event_class, $type , $data)
+    public function createEvent(WebHookData $webHookData)
     {
+        list($event_class, $type, $data) = self::getMessageData($webHookData);
 
+        // @todo WIP !
         switch (sprintf('%s->%s', $event_class, $type))
         {
             case "message_event->injection" :
-                $this->setMessageStatus($webHookData,$data, Message::STATUS_SENDING);
-
-                return true;
-
-            case "message_event->delivery" :
-                $this->setMessageStatus($webHookData,$data, Message::STATUS_SENT);
-
-                return true;
-            case "track_event->open" :
-                $this->setMessageStatus($webHookData,$data, Message::STATUS_SENT);
-
-                return true;
-            case "track_event->click" :
-                $this->setMessageStatus($webHookData, $data,Message::STATUS_SENT);
-
-                return true;
             case "message_event->delay" :
             case "relay_event->relay_tempfail" :
-                $this->setMessageStatus($webHookData,$data, Message::STATUS_SENDING);
+                return $this->extractEvent(Message::STATUS_SENDING, $data);
 
-                return true;
+            case "message_event->delivery" :
+                return $this->extractEvent(Message::STATUS_SENT, $data);
+
+            case "track_event->open" :
+                return $this->extractEvent(Message::STATUS_OPEN, $data);
+
+            case "track_event->click" :
+                return $this->extractUrlEvent('click', $data);
 
             case "message_event->out_of_band" :
             case "message_event->bounce" :
@@ -293,9 +293,8 @@ class SparkPostTransport extends AbstractTransport implements WebHookHandler
             case "gen_event->generation_rejection" :
             case "relay_event->relay_rejection" :
             case "relay_event->relay_permfail" :
-                $this->setMessageStatus($webHookData,$data, Message::STATUS_FAILED);
-
-                return true;
+                // @todo out_of_band does not have "rcpt_meta" will need to lookup "message_id"
+                return $this->extractEvent(Message::STATUS_FAILED, $data);
 
             case "message_event->sms_status" :
             case "message_event->spam_complaint" :
@@ -304,28 +303,37 @@ class SparkPostTransport extends AbstractTransport implements WebHookHandler
             case "unsubscribe_event->link_unsubscribe" :
             case "relay_event->relay_injection" :
             case "relay_event->relay_delivery" :
-                return false;
+            default:
+                return null;
         }
 
-
-        return false;
     }
 
-
-    /**
-     * @param WebHookData $webHookData
-     *
-     * @return bool
-     */
-    public function process(WebHookData $webHookData)
+    private function extractEvent($type, $data)
     {
-        $data = $webHookData->getData();
+        $event = new MessageEvent($type);
+        $event->setOccurredAt($this->getDate($data));
 
-        foreach ($data as $event_class => $event_data)
-        {
-            $type = $event_data['type'];
-
-            return $this->processSingle($webHookData, $event_class, $type, $event_data);
-        }
+        return $event;
     }
+
+    private function extractUrlEvent($type, $data)
+    {
+        $event = new UrlTrackingMessageEvent($type);
+
+        $event->setOccurredAt($this->getDate($data));
+
+        if (array_key_exists('target_link_name', $data))
+        {
+            $event->setTargetLinkUrl($data['target_link_name']);
+        }
+
+        if (array_key_exists('target_link_url', $data))
+        {
+            $event->setTargetLinkUrl($data['target_link_url']);
+        }
+
+        return $event;
+    }
+
 }

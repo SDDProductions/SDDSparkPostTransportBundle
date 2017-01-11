@@ -46,7 +46,7 @@ class SparkPostTransportTest extends PHPUnit_Framework_TestCase
 
         $spp = new SparkPostTransport($this->getEmMock());
 
-        $events = $spp->validateInput($request);
+        $events = $spp->parseRequest($request);
 
         $this->assertEquals($expected, $events);
     }
